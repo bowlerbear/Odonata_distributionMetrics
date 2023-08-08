@@ -22,12 +22,11 @@ length(unique(meanFiles$species))
 
 #get means 
 summaryData <- meanFiles %>%
-                  pivot_longer(AUC:thresh) %>%
+                  pivot_longer(AUC:TSS) %>%
                   group_by(source,species,model,name)%>%
                   summarise(value=mean(value))
 
 (g2 <- summaryData %>%
-  filter(name %in% c("AUC","TSS"))%>%
   ggplot() +
   geom_point(aes(x=species, y = value), size=1) +
   coord_flip() +facet_wrap(~name, scales="free_x")+
