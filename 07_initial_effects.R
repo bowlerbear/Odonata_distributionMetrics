@@ -21,9 +21,9 @@ gInitial <- ggplot(data = areaChanges,
   xlab("Initial area (km2)") + ylab("Change in area (LRR)")+
   geom_hline(linetype="dashed",yintercept=0)
 
-#### absolute  change #####
+#### absolute  change in area #####
 
-areaChange_abs <- readRDS("outputs_29/areaChanges_abs.rds") %>%
+areaChange_abs <- readRDS("outputs/areaChanges_abs.rds") %>%
   setNames(gsub("Change", "Change_abs", names(.)))
 
 areaAnnual <- readRDS("outputs/areaAnnual.rds") %>% filter(Year==1990) %>%
@@ -46,9 +46,6 @@ plot_grid(gInitial, gInitialAbsolute,
 
 ggsave("plots/Fig.S_Initial_area_effects.png",width=4.5, height=6)
 
-#only ones with small inital area have high change
-summary(lm(medianChange ~ initialArea, data=areaChanges))
-#slight negative effect
 
 ### extent change ####
 
@@ -64,9 +61,6 @@ ggplot(data = extentChanges,
   geom_hline(linetype="dashed",yintercept=0)+
   geom_vline(linetype="dashed",xintercept=0)+
   scale_x_log10()
-
-summary(lm(medianChange ~ initialArea, data=extentChanges))
-#negative effect
 
 #### initial extent ####
 extentAnnual <- readRDS("outputs/concavehullAnnual.rds") %>%

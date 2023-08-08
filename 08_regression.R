@@ -4,15 +4,13 @@ library(brms)
 
 ### aoo vs eoo change ####
 
-#### statistics ######
+areaChanges <- readRDS("outputs/areaChanges.rds")%>% filter(species %in% selectSpecies)
+areaChanges$Direction <- ifelse(areaChanges$medianChange>0,"Winners","Losers")
+hullChanges <- readRDS("outputs/concavehullChanges.rds")%>%filter(species %in% selectSpecies)
 
-nrow(subset(allChanges, lowerChange_area>0))
-nrow(subset(allChanges, upperChange_area<0))
-nrow(subset(allChanges, lowerChange_extent>0))
-nrow(subset(allChanges, upperChange_extent<0))
-
-subset(allChanges, lowerChange_area>0 & lowerChange_extent>0 & 
-         medianChange_area<1.6 & medianChange_area>0)
+allChanges <- inner_join(hullChanges,areaChanges,
+                         by=c("species"),
+                         suffix = c("_extent","_area")) 
 
 #### regression ####
 
@@ -63,7 +61,7 @@ fit3 <- brm(bform3,
 
 summary(fit3)#1.59
 
-
+#identify species with larger than expected changes in extent
 subset(allChanges, medianChange_area>1.59)
 allChanges <- allChanges %>% arrange(desc(medianChange_area))
 
@@ -88,6 +86,17 @@ subset(allChanges, medianChange_area>1.59)
 subset(allChanges, lowerChange_extent > predExtentupper)
 
 ### clumpines/saturation ####
+
+areaChanges <- readRDS("outputs/areaChanges.rds")
+areaChanges$Direction <- ifelse(areaChanges$medianChange>0,"Winners","Losers")
+
+#fragmentation
+fragAnnualChanges <- readRDS("outputs/clumpiAnnualChange.rds") %>% filter(species %in% selectSpecies2)
+fragAnnualChanges$Direction <- areaChanges$Direction[match(fragAnnualChanges$species,areaChanges$species)]
+
+#saturation
+saturationChanges <- readRDS("outputs/saturationChanges.rds") %>% filter(species %in% selectSpecies2)
+saturationChanges$Direction <- areaChanges$Direction[match(saturationChanges$species,areaChanges$species)]
 
 #### statistics ####
 
@@ -183,6 +192,14 @@ nrow(subset(coreChanges_wide, lowerChange_core >0 & upperChange_marginal<0))
 
 ### latitude #####
 
+latitudinalChanges <- readRDS("outputs/latitudinalChanges.rds") %>% 
+  filter(species %in% selectSpecies) 
+
+allChanges <- latitudinalChanges %>%
+                  inner_join(.,areaChanges,
+                  by=c("species"))
+#### statistics #####
+
 head(latitudinalChanges)
 
 brm1 <- brm(median | mi(sd) ~ 1, data = subsey(latitudinalChanges, limit=="Northern"), save_mevars = TRUE)
@@ -191,11 +208,10 @@ summary(brm1)
 brm1 <- brm(median | mi(sd) ~ 1, data = subsey(latitudinalChanges, limit=="Southern"), save_mevars = TRUE)
 summary(brm1)
 
-
-head(allChanges)
-
 brm1 <- brm(median | mi(sd) ~ me(medianChange, sdChange), data = subsey(allChanges, limit=="Northern"), save_mevars = TRUE)
 summary(brm1)
 
 brm1 <- brm(median | mi(sd) ~ me(medianChange, sdChange), data = subsey(allChanges, limit=="Southern"), save_mevars = TRUE)
 summary(brm1)
+
+### end #####

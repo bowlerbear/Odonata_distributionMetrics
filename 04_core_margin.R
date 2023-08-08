@@ -9,7 +9,7 @@ theme_set(theme_few())
 source("01_getModels.R")
 source("00_functions.R")
 
-### define core or marginal ####
+### define core or marginal regions ####
 
 coreDF <- selectSpecies2 %>%
   map(.,getCoreRegions) %>%

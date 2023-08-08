@@ -7,7 +7,7 @@ library(ggpirate)
 theme_set(theme_few())
 options(scipen=10000)
 
-#This scripts graps the models and all the other stuff we need for later scripts
+#This scripts grabs the models and all the other stuff we need for later scripts
 
 ### mtbq info ####
 

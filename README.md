@@ -10,10 +10,10 @@ Analysis of Odonata data to explore change.
 + 02 rangeMetrics (occu prop, area, extent, saturation)
 + 03 fragmentation 
 + 04 core and marginal
-+ 05 spatial variability (colonizations/extinctions, range margin effects, latitudinal extents)
-+ 06 relationships (plotting code - Fig. 3 - AOO/EOO, Fig. 4 - Clump/Sat, Fig. 5 - Core/Margine)
-+ 07 initial effects - effects of initial area
-+ 08 regression - test of 07 relationships
++ 05 relationships (plotting code for Fig. 3 - AOO/EOO, Fig. 4 - Clump/Sat, Fig. 5 - Core/Margine)
++ 06 spatial variability (SI plots on colonizations/extinctions, range margin effects, latitudinal extents)
++ 07 initial effects - effects of initial area for SI
++ 08 regression - formal test of relationships
 
 
 ## Subfolders

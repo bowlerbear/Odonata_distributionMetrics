@@ -19,7 +19,7 @@ allChanges <- inner_join(hullChanges,areaChanges,
 #### nu species ###############
 
 #get number that increase or decrease
-allChanges2 <- allChanges %>%
+allChanges_sig <- allChanges %>%
                   mutate(extentSig = ifelse(lowerChange_extent <0 & upperChange_extent>0, "non-signif", "signif"),
                          areaSig =  ifelse(lowerChange_area <0 & upperChange_area>0, "non-signif", "signif"),
                          extentDirection = ifelse(medianChange_extent>0, "increase", "decrease"),
@@ -27,13 +27,13 @@ allChanges2 <- allChanges %>%
                          extentChange = paste(extentSig, extentDirection),
                          areaChange = paste(areaSig, areaDirection)) 
               
-allArea <- allChanges2 %>%
+allArea <- allChanges_sig %>%
               select(species, areaChange) %>%
               group_by(areaChange) %>%
               count() %>% rename(Change = areaChange) %>% 
               add_column(Type="Area")
 
-allExtent <- allChanges2 %>%
+allExtent <- allChanges_sig %>%
               select(species, extentChange) %>%
               group_by(extentChange) %>%
               count() %>% rename(Change = extentChange) %>% 
@@ -50,7 +50,8 @@ gCounts <- bind_rows(allArea, allExtent) %>%
             guides(fill=guide_legend(nrow=2,byrow=TRUE))
 
 
-#### species plots ####
+#### species plots for SI ####
+
 allChanges$species[allChanges$species == "Gomphus flavipes"] <- "Stylurus flavipes"
 
 ggplot(allChanges)+
@@ -145,7 +146,7 @@ fragAnnualChanges <- readRDS("outputs/clumpiAnnualChange.rds") %>% filter(specie
 fragAnnualChanges$Direction <- areaChanges$Direction[match(fragAnnualChanges$species,areaChanges$species)]
 
 #saturation
-saturationChanges <- readRDS("outputs/saturationChanges_absScale.rds") %>% filter(species %in% selectSpecies2)
+saturationChanges <- readRDS("outputs/saturationChanges.rds") %>% filter(species %in% selectSpecies2)
 saturationChanges$Direction <- areaChanges$Direction[match(saturationChanges$species,areaChanges$species)]
 
 #### counts #####
@@ -333,82 +334,5 @@ cowplot::plot_grid(gAOO,gCounts,
                    labels=c("a","b"))
 
 ggsave("plots/Fig.5.png",width=8,height=7)
-
-### Fig. Lat effects ####
-
-latitudinalPosAnnual <- readRDS("outputs/latitudinalPosAnnual.rds") %>% 
-                            rename(species=Species) %>% 
-                            filter(species %in% selectSpecies) 
-latitudinalPosAnnual$Direction <- areaChanges$Direction[match(latitudinalPosAnnual$species,areaChanges$species)]
-
-#also get extent change
-latitudinalChanges <- readRDS("outputs/latitudinalChanges.rds") %>% 
-  filter(species %in% selectSpecies) 
-
-#reorganize
-latitudinalChanges_N <- latitudinalChanges %>% 
-  dplyr::select(species, median_Max, sd_Max, lower_Max, upper_Max) %>%
-  dplyr::rename(median = median_Max, sd = sd_Max, lower = lower_Max, upper = upper_Max) %>%
-  tibble::add_column(limit="Northern")
-
-latitudinalChanges_S <- latitudinalChanges %>% 
-  dplyr::select(species, median_Min, sd_Min, lower_Min, upper_Min) %>%
-  dplyr::rename(median = median_Min, sd = sd_Min, lower = lower_Min, upper = upper_Min) %>%
-  tibble::add_column(limit="Southern")
-
-latitudinalChanges <- bind_rows(latitudinalChanges_N, latitudinalChanges_S)
-
-#### initial effects ############
-
-#initial latitude and change in area
-latitudinalPosAnnualS <- latitudinalPosAnnual %>%
-                            filter(Year==1990) %>%
-                              inner_join(.,areaChanges,
-                              by=c("species","Direction")) 
-
-gInitial <- ggplot(data = latitudinalPosAnnualS,
-                   aes(x = median_Mean/1000000, y = medianChange)) + 
-  geom_point() + 
-  #geom_text(aes(label=species))+
-  geom_errorbar(aes(ymin = lowerChange,ymax = upperChange)) + 
-  geom_errorbarh(aes(xmin = lower_Mean/1000000, xmax = upper_Mean/1000000))+
-  xlab("Initial mean latitude (1000 km)") + ylab("ln Change in area")+
-  geom_hline(linetype="dashed",yintercept=0)
-
-#### relationship with AOCC ####
-
-allChanges <- latitudinalChanges %>%
-                  inner_join(.,areaChanges,
-                  by=c("species"))
-
-(gAOCC <- allChanges %>%
-    ggplot(aes(y= median/1000, x = medianChange, colour=limit)) + 
-    geom_point() +
-    geom_errorbarh(aes(xmin = lowerChange, xmax = upperChange)) + 
-    geom_errorbar(aes(ymin = lower/1000, ymax = upper/1000)) +
-    stat_smooth(method="gam", se=FALSE)+
-    geom_hline(yintercept=0,linetype="dashed")+
-    geom_vline(linetype="dashed",xintercept=0)+
-    scale_colour_brewer("Limit in Germany",type="qual")+
-    xlab("ln Change in area") + ylab("Latitude change (km)"))
-
-#### N and S extents ####
-
-gBoxLat <- latitudinalChanges  %>%
-    ggplot(., aes(x = limit, y = median/1000))+
-    geom_pirate(aes(colour = limit),bars=FALSE)+
-    xlab("Limit in Germany") + ylab("Latitude change (km)")+
-    scale_colour_brewer(type="qual")+
-    geom_hline(yintercept=0, linetype="dashed")
-
-#### plots ####
-
-plot_grid(gBoxLat,
-          gAOCC, 
-          nrow=2,
-          labels=c("A","B"))
-
-ggsave("plots/Fig.S_Lat_effects.png",
-       width = 4.5, height = 5.5)
 
 ### end ######

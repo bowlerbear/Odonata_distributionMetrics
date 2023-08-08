@@ -5,7 +5,6 @@ source("00_functions.R")
 
 ### area ####
 
-#area
 areaAnnual <- lapply(allspecies, function(x){
   applyRangeArea(x,modelSummaries_Limits, summary="annual")}) %>%
   reduce(rbind) 
@@ -51,7 +50,7 @@ saveRDS(saturationAnnual, file="outputs/saturationAnnual.rds")
 saturationChanges <- lapply(selectSpecies,function(x){
   applySaturation(x, modelSummaries_Limits, summary = "change")
 }) %>% reduce(rbind)
-saveRDS(saturationChanges, file="outputs/saturationChanges_absScale.rds")
+saveRDS(saturationChanges, file="outputs/saturationChanges.rds")
 
 ### end ####
 

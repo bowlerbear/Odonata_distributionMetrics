@@ -1,7 +1,7 @@
 source("00_functions.R")
 source("01_getModels.R")
 
-### latitudinal extents ####
+### Latitudinal extents ####
 
 latitudinalAnnual <- lapply(selectSpecies,function(x){
   applyRangeExtent(x, modelSummaries_Limits,summary = "annual")
@@ -25,6 +25,66 @@ latitudinalPosChanges <- lapply(allspecies,function(x){
 
 saveRDS(latitudinalPosChanges, file="outputs/latitudinalPosChanges.rds")
 
+#### plotting #####
+
+latitudinalPosAnnual <- readRDS("outputs/latitudinalPosAnnual.rds") %>% 
+  rename(species=Species) %>% 
+  filter(species %in% selectSpecies) 
+latitudinalPosAnnual$Direction <- areaChanges$Direction[match(latitudinalPosAnnual$species,areaChanges$species)]
+
+#also get extent change
+latitudinalChanges <- readRDS("outputs/latitudinalChanges.rds") %>% 
+  filter(species %in% selectSpecies) 
+
+#reorganize
+latitudinalChanges_N <- latitudinalChanges %>% 
+  dplyr::select(species, median_Max, sd_Max, lower_Max, upper_Max) %>%
+  dplyr::rename(median = median_Max, sd = sd_Max, lower = lower_Max, upper = upper_Max) %>%
+  tibble::add_column(limit="Northern")
+
+latitudinalChanges_S <- latitudinalChanges %>% 
+  dplyr::select(species, median_Min, sd_Min, lower_Min, upper_Min) %>%
+  dplyr::rename(median = median_Min, sd = sd_Min, lower = lower_Min, upper = upper_Min) %>%
+  tibble::add_column(limit="Southern")
+
+latitudinalChanges <- bind_rows(latitudinalChanges_N, latitudinalChanges_S)
+
+#### relationship with AOCC ####
+
+allChanges <- latitudinalChanges %>%
+  inner_join(.,areaChanges,
+             by=c("species"))
+
+(gAOCC <- allChanges %>%
+    ggplot(aes(y= median/1000, x = medianChange, colour=limit)) + 
+    geom_point() +
+    geom_errorbarh(aes(xmin = lowerChange, xmax = upperChange)) + 
+    geom_errorbar(aes(ymin = lower/1000, ymax = upper/1000)) +
+    stat_smooth(method="gam", se=FALSE)+
+    geom_hline(yintercept=0,linetype="dashed")+
+    geom_vline(linetype="dashed",xintercept=0)+
+    scale_colour_brewer("Limit in Germany",type="qual")+
+    xlab("ln Change in area") + ylab("Latitude change (km)"))
+
+#### N and S extents ####
+
+gBoxLat <- latitudinalChanges  %>%
+  ggplot(., aes(x = limit, y = median/1000))+
+  geom_pirate(aes(colour = limit),bars=FALSE)+
+  xlab("Limit in Germany") + ylab("Latitude change (km)")+
+  scale_colour_brewer(type="qual")+
+  geom_hline(yintercept=0, linetype="dashed")
+
+#### plots ####
+
+plot_grid(gBoxLat,
+          gAOCC, 
+          nrow=2,
+          labels=c("A","B"))
+
+ggsave("plots/Fig.S_Lat_effects.png",
+       width = 4.5, height = 5.5)
+
 ### Numbers of colonization and extinctions ####
 
  sdChanges <- lapply(allspecies,function(x){
@@ -37,7 +97,7 @@ saveRDS(latitudinalPosChanges, file="outputs/latitudinalPosChanges.rds")
 
  saveRDS(sdChanges, file="outputs/sdChanges.rds")
 
-#### plotting ####
+#### plots ####
 
 areaChanges <- readRDS("outputs/areaChanges.rds") %>% filter(species %in% selectSpecies)
 areaChanges$Direction <- ifelse(areaChanges$medianChange>0,"Winners","Losers")
@@ -66,7 +126,7 @@ gBar <- ggplot(propSum)+
   theme(axis.text.x = element_blank()) +
   geom_vline(linetype="dashed",xintercept=28)
 
-ggsave("plots/Fig.ColExt.png",width=4, height=3)
+ggsave("plots/Fig.S_ColExt.png",width=4, height=3)
 
 ### Margin AOO/EOO #####
 
@@ -77,23 +137,6 @@ margins <- read.csv("splines/prep/specieslist_odonata_margins.csv", sep=";") %>%
                 mutate(Range_margin = ifelse(Range_margin=="stable","none",Range_margin))%>%
                 mutate(Range_margin = factor(Range_margin, levels=c("none",
                                                                     "northern","southern")))
-
-table(margins$Range_margin)
-#northern southern   stable 
-#22        4       47
-#26/73 - 36%
-
-#### test ########
-
-brm1 <- brm(abs(medianChange_extent) | mi(sdChange_extent) ~ Range_margin,
-            data = margins, 
-            save_mevars = TRUE)
-summary(brm1)
-
-brm1 <- brm(abs(medianChange_area) | mi(sdChange_area) ~ Range_margin,
-            data = margins, 
-            save_mevars = TRUE)
-summary(brm1)
 
 #### boxplots ####
 
@@ -115,7 +158,7 @@ summary(brm1)
 
 gBoxMarg <- cowplot::plot_grid(gBoxMargArea,gBoxMargExtent, ncol=2)
 
-#### Scatterplot ####
+#### scatterplot ####
 
 (gScatterMarg <- ggplot(data = margins,
        aes(x = medianChange_area,
@@ -126,8 +169,6 @@ gBoxMarg <- cowplot::plot_grid(gBoxMargArea,gBoxMargExtent, ncol=2)
       geom_vline(linetype="dashed",xintercept=0)+
       geom_abline(intercept=0, slope=1, linetype="dashed")+
       xlab("ln Change in area") + ylab("ln Change in extent"))
-
-#### savings ###################
 
 cowplot::plot_grid(gBoxMarg,
                    gScatterMarg,
@@ -145,21 +186,6 @@ margins <- read.csv("splines/prep/specieslist_odonata_margins.csv", sep=";") %>%
   mutate(Range_margin = ifelse(Range_margin=="stable","none",Range_margin))%>%
   mutate(Range_margin = factor(Range_margin, levels=c("none",
                                                       "northern","southern")))
-
-table(margins$Range_margin)
-#northern southern   stable 
-#22        4       47
-#26/73 - 36%
-
-#### test ########
-
-brm1 <- brm(abs(medianChange) | mi(sdChange) ~ Range_margin,
-            data = margins)
-summary(brm1)
-
-brm1 <- brm(abs(medianChange) | mi(sdChange) ~ Range_margin + Direction,
-            data = margins)
-summary(brm1)
 
 #### boxplot ####
 
@@ -181,21 +207,6 @@ margins <- read.csv("splines/prep/specieslist_odonata_margins.csv", sep=";") %>%
   mutate(Range_margin = ifelse(Range_margin=="stable","none",Range_margin))%>%
   mutate(Range_margin = factor(Range_margin, levels=c("none",
                                                       "northern","southern")))
-
-table(margins$Range_margin)
-#northern southern   stable 
-#22        4       47
-#26/73 - 36%
-
-#### test ########
-
-brm1 <- brm(abs(medianChange) | mi(sdChange) ~ Range_margin,
-            data = margins)
-summary(brm1)
-
-brm1 <- brm(abs(medianChange) | mi(sdChange) ~ Range_margin + Direction,
-            data = margins)
-summary(brm1)
 
 #### boxplot ####
 
